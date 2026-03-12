@@ -1,0 +1,5 @@
+1. moe模型中的af分离，核心原因是在于attention和ffn是不同类型的算子，ffn需要把batch size开大才能把显卡的算力吃满，但是attention操作对大batch size并没有什么收益，因为attention的速度主要卡在显存带宽上。af分离就是attention用dp，ffn用ep，这样ffn就可以最大限度的吃满算力。
+
+2. moe模型的部署一般会用dp+ep的方式，而不是tp。tp有一个很不好的点在于all reduce操作，并且通信量是和全局batch size成正比的。假设每张卡上的bs是固定的，当增加卡数的时候，全局bs增大，因此吞吐增加，但与此同时tp通信量也会增加。当达到一个限度的时候，整体就变成了communication bound的操作了。
+
+3. dp+ep的方案有一些瓶颈：首先就是所有显卡的作用是紧密相连的，一旦一张卡出现问题，整个服务就会崩溃。第二就是ep扩展的规模受限于专家数量，就像tp受限于head num一样。
